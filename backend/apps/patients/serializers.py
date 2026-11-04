@@ -27,6 +27,22 @@ class PatientSerializer(serializers.ModelSerializer):
         read_only_fields = ("id", "email", "full_name", "created_at", "updated_at")
 
 
+class RosterEntrySerializer(serializers.Serializer):
+    """One row of a clinician's caseload.
+
+    Deliberately aggregate-only: a caseload list should not leak the raw diary.
+    A clinician who wants detail opens the patient and that read is audited.
+    """
+
+    id = serializers.UUIDField()
+    full_name = serializers.CharField()
+    email = serializers.EmailField()
+    primary_condition = serializers.CharField()
+    entries_30d = serializers.IntegerField()
+    avg_severity_30d = serializers.FloatField(allow_null=True)
+    last_recorded_at = serializers.DateTimeField(allow_null=True)
+
+
 class CareRelationshipSerializer(serializers.ModelSerializer):
     clinician_email = serializers.EmailField(source="clinician.email", read_only=True)
     patient_id = serializers.UUIDField(source="patient.id", read_only=True)

@@ -9,6 +9,24 @@ Built as a portfolio piece for a **Full-Stack Engineer** role focused on
 
 ---
 
+## Try it without installing anything
+
+The frontend ships as a **runnable web app** (React Native Web) with a built-in
+demo data layer, so it works from a browser with no backend:
+
+- **Patient** — `patient@demo.carecare` · `Demo-Passw0rd!23`
+- **Clinician** — `doctor@demo.carecare` · `Demo-Passw0rd!23`
+- **Administrator** — `admin@demo.carecare` · `Demo-Passw0rd!23`
+
+The login screen also has one-click buttons for each role. Demo mode answers
+from a seeded, in-browser dataset (`mobile/src/demo/`); the real Django API is
+used when `EXPO_PUBLIC_DEMO` is unset. It is a **PWA** — your browser offers an
+"Install" action and there is a *Get app* tab with download instructions.
+
+> Demo build. Not a medical device. Do not enter real patient data.
+
+---
+
 ## Why this exists
 
 The role is end-to-end: *architecture → implementation → testing → deployment →
@@ -17,7 +35,7 @@ This repository demonstrates each layer with real code, not slideware:
 
 | Layer | What's here | Evidence |
 | --- | --- | --- |
-| Backend | Django 5 + DRF, JWT auth, RBAC, audit log, async tasks | 54 passing tests |
+| Backend | Django 5 + DRF, JWT auth, RBAC, audit log, async tasks | 62 passing tests |
 | Frontend | React Native (Expo) + TypeScript, secure token storage | unit tests, typecheck |
 | Data | PostgreSQL, indexed queries, SQL-side aggregation | migrations, models |
 | Security | object-level authz, throttling, sealed secrets, audit trail | dedicated authz test suite |
@@ -48,12 +66,15 @@ working unless it was actually run.
 │   ├── tests/           unit + integration + authorization suites
 │   ├── Dockerfile, docker-entrypoint.sh
 │   └── pyproject.toml
-├── mobile/             React Native + TypeScript (Expo)
+├── mobile/             React Native + TypeScript (Expo), ships as a web PWA too
 │   └── src/
 │       ├── api/         axios client w/ single-flight JWT refresh
 │       ├── auth/        AuthContext + secure token storage
+│       ├── demo/        in-browser demo data layer (no backend needed)
+│       ├── pwa/         install prompt + service-worker registration
 │       ├── components/  design-system primitives
-│       ├── screens/     Login, Register, Dashboard, Log, Insights, Therapy, Profile
+│       ├── screens/     Login, Register, Dashboard, Log, Insights, Therapy,
+│       │                Roster, Patient detail, Admin, Profile, Download
 │       └── ...
 ├── ops/
 │   ├── k8s/            Deployment, Service, HPA, PDB, NetworkPolicy, Job, Ingress
@@ -82,7 +103,7 @@ uv pip install -e ".[dev]"
 .venv/bin/python -m pytest -q            # macOS/Linux
 ```
 
-Expected (verified on this project): `54 passed`.
+Expected (verified on this project): `62 passed`.
 
 To run against real Postgres (used in CI):
 
@@ -122,6 +143,8 @@ EXPO_PUBLIC_API_URL=http://localhost:8000 npm run web   # or: npm start
 | POST | `/api/v1/auth/refresh/` | rotate tokens | anonymous |
 | POST | `/api/v1/auth/logout/` | blacklist refresh | authenticated |
 | GET | `/api/v1/auth/me/` | current profile | authenticated |
+| GET | `/api/v1/auth/users/` | account directory | admin only |
+| GET | `/api/v1/patients/roster/` | clinician's caseload (30-day stats) | clinician/admin |
 | GET/POST | `/api/v1/tracking/symptoms/` | list / create entries | patient (own) · clinician (care team) |
 | GET | `/api/v1/tracking/symptoms/trend/` | daily severity series | scoped as above |
 | GET | `/api/v1/tracking/symptoms/summary/` | 30-day summary | scoped as above |

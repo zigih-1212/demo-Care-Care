@@ -1,0 +1,18 @@
+# Cloudflare Pages project configuration.
+#
+# Deploy (both need `npx wrangler login` once):
+#
+#   A) Direct upload of a pre-built bundle (simplest):
+#        cd mobile && npm install && npm run build:web
+#        npx wrangler pages deploy mobile/dist --project-name carecare-demo
+#
+#   B) Git integration (Cloudflare builds on every push):
+#        build command:  cd mobile && npm install && npm run build:web
+#        output dir:     mobile/dist
+#        env var:        EXPO_PUBLIC_DEMO=1
+#
+# The demo transport is compiled in (EXPO_PUBLIC_DEMO=1), so the hosted site is
+# fully interactive with no backend.
+name = "carecare-demo"
+pages_build_output_dir = "mobile/dist"
+compatibility_date = "2025-01-01"

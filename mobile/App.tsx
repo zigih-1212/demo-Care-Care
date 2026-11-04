@@ -11,6 +11,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider } from '@/auth/AuthContext';
 import { RootNavigator } from '@/navigation/RootNavigator';
+import { registerServiceWorker } from '@/pwa/useInstallPrompt';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -21,6 +22,9 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Web-only, no-op on native. Makes the browser build installable/offline-capable.
+registerServiceWorker();
 
 export default function App(): React.JSX.Element {
   return (

@@ -6,7 +6,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 
-import { therapyApi, trackingApi, SymptomListParams } from '@/api/endpoints';
+import { adminApi, patientsApi, therapyApi, trackingApi, SymptomListParams } from '@/api/endpoints';
 import type { MedicationEntry, SymptomEntry } from '@/types/api';
 
 export const queryKeys = {
@@ -16,6 +16,10 @@ export const queryKeys = {
   medications: () => ['medications'] as const,
   programs: () => ['programs'] as const,
   enrollments: () => ['enrollments'] as const,
+  roster: () => ['roster'] as const,
+  patient: (id: string) => ['patient', id] as const,
+  adminUsers: () => ['adminUsers'] as const,
+  auditLog: () => ['auditLog'] as const,
 };
 
 export function useSymptoms(params: SymptomListParams = {}) {
@@ -101,4 +105,24 @@ export function useCompleteEnrollment() {
     mutationFn: (enrollmentId: string) => therapyApi.complete(enrollmentId),
     onSuccess: () => qc.invalidateQueries({ queryKey: queryKeys.enrollments() }),
   });
+}
+
+export function useRoster() {
+  return useQuery({ queryKey: queryKeys.roster(), queryFn: () => patientsApi.roster() });
+}
+
+export function usePatient(id: string | null) {
+  return useQuery({
+    queryKey: queryKeys.patient(id ?? 'none'),
+    queryFn: () => patientsApi.get(id as string),
+    enabled: Boolean(id),
+  });
+}
+
+export function useAdminUsers() {
+  return useQuery({ queryKey: queryKeys.adminUsers(), queryFn: () => adminApi.listUsers() });
+}
+
+export function useAuditLog() {
+  return useQuery({ queryKey: queryKeys.auditLog(), queryFn: () => adminApi.listAudit() });
 }

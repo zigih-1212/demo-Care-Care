@@ -7,6 +7,7 @@
     "scheme": "carecare",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": false,
+    "icon": "./public/icon-512.png",
     "splash": {
       "backgroundColor": "#0E7C7B",
       "resizeMode": "contain"
@@ -22,6 +23,7 @@
     "android": {
       "package": "com.carecare.demo",
       "adaptiveIcon": {
+        "foregroundImage": "./public/icon-512.png",
         "backgroundColor": "#0E7C7B"
       }
     },

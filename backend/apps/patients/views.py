@@ -7,8 +7,13 @@ is audited, because "who looked at whose health data" is itself regulated.
 
 from __future__ import annotations
 
+from datetime import timedelta
+
+from django.db.models import Avg, Count, Max, Q
+from django.utils import timezone
 from rest_framework import mixins, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -17,7 +22,7 @@ from apps.audit.services import record as audit_record
 from common.permissions import IsCareTeamMember
 
 from .models import Patient
-from .serializers import PatientSerializer
+from .serializers import PatientSerializer, RosterEntrySerializer
 
 
 class PatientViewSet(
@@ -73,6 +78,48 @@ class PatientViewSet(
             patient=instance,
             metadata={"changed": list(self.request.data.keys())},
         )
+
+    @action(detail=False, methods=["get"], url_path="roster")
+    def roster(self, request):
+        """The signed-in clinician's caseload, with 30-day aggregate stats.
+
+        Aggregate-only by design: listing raw diaries would leak more than a
+        caseload overview needs. Only active care relationships are included.
+        """
+        user = request.user
+        if user.role not in ("doctor", "admin"):
+            raise PermissionDenied("Only clinicians and administrators have a caseload.")
+
+        since = timezone.now() - timedelta(days=30)
+        patients = self.get_queryset()
+        rows = patients.annotate(
+            entries_30d=Count(
+                "symptom_entries",
+                filter=Q(symptom_entries__recorded_at__gte=since),
+            ),
+            avg_severity_30d=Avg(
+                "symptom_entries__severity",
+                filter=Q(symptom_entries__recorded_at__gte=since),
+            ),
+            last_recorded_at=Max("symptom_entries__recorded_at"),
+        ).order_by("user__full_name")
+
+        data = [
+            {
+                "id": p.id,
+                "full_name": p.user.full_name,
+                "email": p.user.email,
+                "primary_condition": p.primary_condition,
+                "entries_30d": p.entries_30d,
+                "avg_severity_30d": (
+                    round(float(p.avg_severity_30d), 2) if p.avg_severity_30d is not None else None
+                ),
+                "last_recorded_at": p.last_recorded_at,
+            }
+            for p in rows
+        ]
+        serializer = RosterEntrySerializer(data, many=True)
+        return Response(serializer.data)
 
     @action(detail=False, methods=["get"], url_path="me")
     def me(self, request):

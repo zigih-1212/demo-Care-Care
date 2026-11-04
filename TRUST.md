@@ -18,12 +18,13 @@ Redis/kubectl/terraform installed**. This constraint shapes the status below.
 | Django system check passes | `python manage.py check` | `System check identified no issues (0 silenced)` |
 | Production deploy check passes | `manage.py check --deploy --settings=carecare.settings.prod` | `System check identified no issues (0 silenced)` |
 | Migrations apply | `python manage.py migrate` on test settings | all `0001_initial` applied OK |
-| Full test suite passes | `.venv/Scripts/python -m pytest -q` | **54 passed** |
+| Full test suite passes | `.venv/Scripts/python -m pytest -q` | **62 passed** |
 | Lint / format / types | `ruff check .` · `ruff format --check .` · `mypy carecare apps common` | all clean (`64 source files`) |
 | Tests cover RBAC/privacy | `tests/test_authorization.py` (19 tests) | cross-patient access denied, revoked relationship denied (read+analytics+write+enroll), audit written |
 | Tests cover auth lifecycle | `tests/test_auth.py` (13 tests) | login/refresh/logout/blacklist/change-password |
 | Tests cover validation | `tests/test_tracking.py` (7 tests) | backdating window, severity bounds, trend aggregation |
 | Tests cover audit service | `tests/test_audit_service.py` (3 tests) | failed audit write returns None and does not poison the caller transaction |
+| Tests cover clinician roster / accounts | `tests/test_roster.py` (8 tests) | roster is active-only + aggregate-only; account directory is admin-only and never returns passwords |
 | Integration surface | `tests/test_integration.py` (5 tests) | health, request-id, error envelope, OpenAPI schema |
 | End-to-end write path (demo) | live `runserver` + demo seed, POST then GET | POST `/symptoms/` → 201, then summary/trend → 200 (see defect log) |
 
@@ -118,6 +119,15 @@ environment. They are inspectable artifacts, not executed proof.
   failure or a dropped connection). Fixed by wrapping the write in its own
   `transaction.atomic()` savepoint in `apps/audit/services.py`; three
   regression tests added in `tests/test_audit_service.py`, suite grew 51 → 54.
+- **Web: nested navigator crashed the app after demo login (High, web target).**
+  The per-role tab sets were extracted into helper components returning a
+  fragment (`<PatientTabs />`), but React Navigation walks its direct children
+  statically and cannot read a custom component's return value, so it threw
+  `A navigator can only contain 'Screen', 'Group' or 'React.Fragment' as its
+  direct children`. Found by clicking a demo login button in a real browser —
+  `tsc`/`eslint`/`jest` cannot catch this class of defect. Fixed by inlining the
+  `<Tabs.Screen>` elements as direct children of `Tabs.Navigator` in
+  `src/navigation/RootNavigator.tsx`.
 
 ## How to convert UNVERIFIED → VERIFIED
 

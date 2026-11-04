@@ -1,11 +1,20 @@
 /**
- * Therapy screen — browse active programs and manage enrollments.
+ * Therapy screen — the patient's guided programs and the catalogue to join more.
  */
 import React from 'react';
-import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Alert, StyleSheet, Text, View } from 'react-native';
 
 import { ApiError } from '@/api/client';
-import { Button, Card, EmptyState, ErrorState, ScreenHeader } from '@/components/ui';
+import {
+  Button,
+  Card,
+  EmptyState,
+  ErrorState,
+  Page,
+  Pill,
+  ProgressBar,
+  SectionTitle,
+} from '@/components/ui';
 import { useCompleteEnrollment, useEnroll, useEnrollments, usePrograms } from '@/hooks/queries';
 import { colors, spacing, typography } from '@/theme/tokens';
 
@@ -31,7 +40,7 @@ export function TherapyScreen(): React.JSX.Element {
 
   if (programs.isError || enrollments.isError) {
     return (
-      <View style={styles.flex}>
+      <Page>
         <ErrorState
           message="Couldn't load your programs."
           onRetry={() => {
@@ -39,23 +48,33 @@ export function TherapyScreen(): React.JSX.Element {
             void enrollments.refetch();
           }}
         />
-      </View>
+      </Page>
     );
   }
 
   return (
-    <ScrollView style={styles.flex} contentContainerStyle={styles.container}>
-      <ScreenHeader title="Therapy" subtitle="Guided programs for your condition" />
+    <Page>
+      <Text style={styles.title}>Therapy</Text>
+      <Text style={styles.subtitle}>
+        Structured plans build habits that reduce flare-ups. Progress is tracked automatically.
+      </Text>
 
-      <Text style={styles.sectionTitle}>Your programs</Text>
+      <SectionTitle title="Your programs" />
       {enrollments.data && enrollments.data.results.length > 0 ? (
         enrollments.data.results.map((enrollment) => (
           <Card key={enrollment.id} style={styles.card}>
-            <Text style={styles.cardTitle}>{enrollment.program_detail.title}</Text>
-            <Text style={styles.meta}>
-              {enrollment.status} • {enrollment.program_detail.duration_weeks} weeks •{' '}
-              {enrollment.progress_percent}%
-            </Text>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>{enrollment.program_detail.title}</Text>
+              <Pill
+                label={enrollment.status}
+                tone={enrollment.status === 'completed' ? 'success' : 'brand'}
+              />
+            </View>
+            <Text style={styles.meta}>{enrollment.program_detail.duration_weeks} weeks</Text>
+            <View style={styles.progressWrap}>
+              <ProgressBar percent={enrollment.progress_percent} />
+              <Text style={styles.progressLabel}>{enrollment.progress_percent}% complete</Text>
+            </View>
             {enrollment.status === 'active' ? (
               <View style={styles.action}>
                 <Button
@@ -69,16 +88,17 @@ export function TherapyScreen(): React.JSX.Element {
           </Card>
         ))
       ) : (
-        <EmptyState message="You haven't enrolled in a program yet." />
+        <EmptyState message="You haven't enrolled in a program yet. Pick one below to begin." />
       )}
 
-      <Text style={[styles.sectionTitle, styles.spacer]}>Available programs</Text>
+      <SectionTitle title="Available programs" />
       {programs.data?.results.map((program) => (
         <Card key={program.id} style={styles.card}>
-          <Text style={styles.cardTitle}>{program.title}</Text>
-          <Text style={styles.meta}>
-            {program.condition} • {program.duration_weeks} weeks
-          </Text>
+          <View style={styles.cardHeader}>
+            <Text style={styles.cardTitle}>{program.title}</Text>
+            <Pill label={program.condition} tone="neutral" />
+          </View>
+          <Text style={styles.meta}>{program.duration_weeks} weeks</Text>
           <Text style={styles.description}>{program.description}</Text>
           <View style={styles.action}>
             <Button
@@ -90,18 +110,28 @@ export function TherapyScreen(): React.JSX.Element {
           </View>
         </Card>
       ))}
-    </ScrollView>
+    </Page>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1, backgroundColor: colors.background },
-  container: { padding: spacing.md },
-  sectionTitle: { ...(typography.h3 as object), color: colors.textPrimary, marginBottom: spacing.sm },
-  spacer: { marginTop: spacing.lg },
-  card: { marginBottom: spacing.md },
-  cardTitle: { ...(typography.bodyStrong as object), color: colors.textPrimary },
-  meta: { ...(typography.caption as object), color: colors.textMuted, marginTop: spacing.xs, textTransform: 'capitalize' },
-  description: { ...(typography.body as object), color: colors.textSecondary, marginTop: spacing.sm },
-  action: { marginTop: spacing.md },
+  title: { ...(typography.h1 as object), color: colors.textPrimary },
+  subtitle: {
+    ...(typography.body as object),
+    color: colors.textSecondary,
+    marginTop: spacing.xs,
+  },
+  card: { marginBottom: spacing.md, gap: spacing.xs },
+  cardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  cardTitle: { ...(typography.bodyStrong as object), color: colors.textPrimary, flex: 1 },
+  meta: { ...(typography.caption as object), color: colors.textMuted },
+  description: { ...(typography.body as object), color: colors.textSecondary, marginTop: spacing.xs },
+  progressWrap: { marginTop: spacing.sm, gap: spacing.xs },
+  progressLabel: { ...(typography.caption as object), color: colors.textSecondary },
+  action: { marginTop: spacing.sm },
 });

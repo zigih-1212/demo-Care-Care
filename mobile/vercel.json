@@ -3,5 +3,10 @@
   "buildCommand": "npm run build:web",
   "outputDirectory": "dist",
   "framework": null,
+  "build": {
+    "env": {
+      "EXPO_PUBLIC_DEMO": "1"
+    }
+  },
   "rewrites": [{ "source": "/(.*)", "destination": "/index.html" }]
 }

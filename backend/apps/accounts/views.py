@@ -15,6 +15,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
+from .models import User
 from .serializers import (
     ChangePasswordSerializer,
     ConsentSerializer,
@@ -58,6 +59,27 @@ class MeView(APIView):
 
     def get(self, request):
         return Response(UserSerializer(request.user).data)
+
+
+class UsersListView(generics.ListAPIView):
+    """Administrator-only account directory.
+
+    A plain user list is not sensitive health data, but it *is* the map of who
+    can access whose records, so it is restricted to the admin role and every
+    call is a normal authenticated request. Ordering is stable for the UI.
+    """
+
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserSerializer
+    queryset = User.objects.all().order_by("role", "email")
+    pagination_class = None
+
+    def initial(self, request, *args, **kwargs):
+        super().initial(request, *args, **kwargs)
+        if getattr(request.user, "role", None) != "admin":
+            from rest_framework.exceptions import PermissionDenied
+
+            raise PermissionDenied("Only administrators can list accounts.")
 
 
 class ChangePasswordView(APIView):

@@ -2,22 +2,28 @@
  * Root navigator.
  *
  * Two worlds: an auth stack when anonymous, a bottom-tab app when authenticated.
- * The switch is driven purely by AuthContext status, so deep links / restores
- * land in the right place without manual redirects.
+ * On top of that, the tab set is role-aware — a patient logs and reviews their
+ * own health, a clinician triages a caseload, an administrator audits access.
+ * Showing everyone the same five tabs was the original weakness; each role now
+ * gets only the tools that match their job.
  */
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import React, { useState } from 'react';
+import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 
 import { useAuth } from '@/auth/AuthContext';
+import { AdminScreen } from '@/screens/AdminScreen';
 import { DashboardScreen } from '@/screens/DashboardScreen';
+import { DownloadScreen } from '@/screens/DownloadScreen';
 import { InsightsScreen } from '@/screens/InsightsScreen';
 import { LogScreen } from '@/screens/LogScreen';
 import { LoginScreen } from '@/screens/LoginScreen';
 import { ProfileScreen } from '@/screens/ProfileScreen';
 import { RegisterScreen } from '@/screens/RegisterScreen';
+import { RosterScreen } from '@/screens/RosterScreen';
+import { PatientDetailScreen } from '@/screens/PatientDetailScreen';
 import { TherapyScreen } from '@/screens/TherapyScreen';
 import { colors, spacing, typography } from '@/theme/tokens';
 
@@ -31,7 +37,10 @@ export type AppTabParamList = {
   Log: undefined;
   Insights: undefined;
   Therapy: undefined;
+  Patients: undefined;
+  Administration: undefined;
   Profile: undefined;
+  Download: undefined;
 };
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
@@ -45,7 +54,22 @@ function TabIcon({ label, focused }: { label: string; focused: boolean }): React
   );
 }
 
+function icon(label: string) {
+  return ({ focused }: { focused: boolean }) => <TabIcon label={label} focused={focused} />;
+}
+
+/** Clinician area: roster plus a stack for the read-only detail view. */
+function ClinicianArea(): React.JSX.Element {
+  const [selected, setSelected] = React.useState<string | null>(null);
+  if (selected) {
+    return <PatientDetailScreen patientId={selected} onBack={() => setSelected(null)} />;
+  }
+  return <RosterScreen onSelectPatient={setSelected} />;
+}
+
 function AppTabs(): React.JSX.Element {
+  const { user } = useAuth();
+  const role = user?.role ?? 'patient';
   return (
     <Tabs.Navigator
       screenOptions={{
@@ -55,30 +79,49 @@ function AppTabs(): React.JSX.Element {
         tabBarStyle: { backgroundColor: colors.surface, borderTopColor: colors.border },
       }}
     >
+      {/* Screens are declared inline (inside fragments) rather than in helper
+          components: React Navigation only accepts Screen/Group/Fragment as
+          direct children and cannot statically read a custom component's
+          return value. */}
+      {role === 'patient' ? (
+        <>
+          <Tabs.Screen
+            name="Overview"
+            component={DashboardScreen}
+            options={{ tabBarIcon: icon('◉') }}
+          />
+          <Tabs.Screen name="Log" component={LogScreen} options={{ tabBarIcon: icon('＋') }} />
+          <Tabs.Screen
+            name="Insights"
+            component={InsightsScreen}
+            options={{ tabBarIcon: icon('▤') }}
+          />
+          <Tabs.Screen
+            name="Therapy"
+            component={TherapyScreen}
+            options={{ tabBarIcon: icon('◎') }}
+          />
+        </>
+      ) : null}
+      {role === 'doctor' ? (
+        <Tabs.Screen
+          name="Patients"
+          component={ClinicianArea}
+          options={{ tabBarIcon: icon('☰'), title: 'Patients' }}
+        />
+      ) : null}
+      {role === 'admin' ? (
+        <Tabs.Screen
+          name="Administration"
+          component={AdminScreen}
+          options={{ tabBarIcon: icon('⚖'), title: 'Admin' }}
+        />
+      ) : null}
+      <Tabs.Screen name="Profile" component={ProfileScreen} options={{ tabBarIcon: icon('☺') }} />
       <Tabs.Screen
-        name="Overview"
-        component={DashboardScreen}
-        options={{ tabBarIcon: ({ focused }) => <TabIcon label="◉" focused={focused} /> }}
-      />
-      <Tabs.Screen
-        name="Log"
-        component={LogScreen}
-        options={{ tabBarIcon: ({ focused }) => <TabIcon label="＋" focused={focused} /> }}
-      />
-      <Tabs.Screen
-        name="Insights"
-        component={InsightsScreen}
-        options={{ tabBarIcon: ({ focused }) => <TabIcon label="▤" focused={focused} /> }}
-      />
-      <Tabs.Screen
-        name="Therapy"
-        component={TherapyScreen}
-        options={{ tabBarIcon: ({ focused }) => <TabIcon label="◎" focused={focused} /> }}
-      />
-      <Tabs.Screen
-        name="Profile"
-        component={ProfileScreen}
-        options={{ tabBarIcon: ({ focused }) => <TabIcon label="☺" focused={focused} /> }}
+        name="Download"
+        component={DownloadScreen}
+        options={{ tabBarIcon: icon('⭳'), title: 'Get app' }}
       />
     </Tabs.Navigator>
   );
@@ -103,11 +146,8 @@ function AuthNavigator(): React.JSX.Element {
 
 export function RootNavigator(): React.JSX.Element {
   const { status } = useAuth();
-  // Local dev convenience: allow switching auth mode in the tab bar collapses
-  // to nothing extra here; React Query handles server-state separately.
-  const [ready] = useState(true);
 
-  if (status === 'loading' || !ready) {
+  if (status === 'loading') {
     return (
       <View style={styles.loading}>
         <ActivityIndicator size="large" color={colors.brand} />
