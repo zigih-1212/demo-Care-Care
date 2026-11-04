@@ -44,7 +44,7 @@ export function useCreateSymptom() {
   return useMutation({
     mutationFn: (input: Parameters<typeof trackingApi.createSymptom>[0]) =>
       trackingApi.createSymptom(input),
-    onSuccess: (created: SymptomEntry) => {
+    onSuccess: (_created: SymptomEntry) => {
       qc.invalidateQueries({ queryKey: ['symptoms'] });
       qc.invalidateQueries({ queryKey: ['trend'] });
       qc.invalidateQueries({ queryKey: ['summary'] });
@@ -73,7 +73,7 @@ export function useCreateMedication() {
   return useMutation({
     mutationFn: (input: Parameters<typeof trackingApi.createMedication>[0]) =>
       trackingApi.createMedication(input),
-    onSuccess: (created: MedicationEntry) => {
+    onSuccess: (_created: MedicationEntry) => {
       qc.invalidateQueries({ queryKey: queryKeys.medications() });
     },
   });
