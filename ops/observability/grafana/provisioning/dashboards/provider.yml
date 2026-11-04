@@ -1,0 +1,13 @@
+# Grafana dashboard provider — loads dashboards from disk on boot.
+apiVersion: 1
+
+providers:
+  - name: Cara Care
+    orgId: 1
+    folder: 'Cara Care'
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /etc/grafana/dashboards

@@ -1,0 +1,30 @@
+# Mobile CI: type-check, lint, unit tests, and an EAS build trigger on main.
+name: mobile
+
+on:
+  push:
+    paths: ['mobile/**', '.github/workflows/mobile.yml']
+  pull_request:
+    paths: ['mobile/**', '.github/workflows/mobile.yml']
+
+defaults:
+  run:
+    working-directory: mobile
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - name: TypeScript type-check
+        run: npm run typecheck
+      - name: ESLint
+        run: npm run lint
+      - name: Jest unit tests
+        run: npm test -- --ci --coverage

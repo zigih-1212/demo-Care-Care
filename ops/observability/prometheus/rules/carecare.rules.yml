@@ -1,0 +1,57 @@
+# Alerting rules — focused on the things that actually page a backend engineer:
+# error ratio, latency, saturation, and the health of the DB/queue underneath.
+groups:
+  - name: carecare-api
+    rules:
+      - alert: ApiHighErrorRate
+        # >5% 5xx for 5 minutes is a real outage, not a blip.
+        expr: |
+          sum(rate(django_http_responses_total_by_status_total{status=~"5.."}[5m]))
+            /
+          sum(rate(django_http_responses_total_by_status_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'API 5xx error rate above 5%'
+          runbook: 'https://wiki.carecare.example.com/runbooks/api-5xx'
+
+      - alert: ApiHighLatencyP95
+        expr: |
+          histogram_quantile(
+            0.95,
+            sum(rate(django_http_requests_latency_seconds_by_view_method_bucket[5m])) by (le)
+          ) > 1.0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'API p95 latency above 1s'
+
+      - alert: ApiPodRestarting
+        expr: increase(kube_pod_container_status_restarts_total{namespace="carecare"}[15m]) > 3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Pod {{ $labels.pod }} is crash-looping'
+
+  - name: carecare-dependencies
+    rules:
+      - alert: PostgresConnectionsSaturated
+        expr: |
+          sum(pg_stat_activity_count{datname="carecare"})
+            / on() group_left max(pg_settings_max_connections) > 0.85
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Postgres connection pool is >85% exhausted'
+
+      - alert: CeleryQueueBacklog
+        expr: sum(redis_db_keys{db="0"}) by (instance) > 10000
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: 'Redis key backlog growing (possible stuck worker)'

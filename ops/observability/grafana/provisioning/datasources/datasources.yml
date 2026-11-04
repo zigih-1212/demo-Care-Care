@@ -1,0 +1,24 @@
+# Grafana provisioning — datasources are code, not clicks.
+apiVersion: 1
+
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    jsonData:
+      timeInterval: 15s
+
+  - name: Loki
+    type: loki
+    access: proxy
+    url: http://loki:3100
+    jsonData:
+      maxLines: 1000
+      derivedFields:
+        # Click a request_id in a log line to jump to every other line with it.
+        - name: request_id
+          matcherRegex: '"request_id":"([^"]+)"'
+          url: '$${__value.raw}'
+          datasourceUid: loki

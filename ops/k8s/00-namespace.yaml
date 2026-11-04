@@ -1,0 +1,53 @@
+# Namespace + baseline policies for the Cara Care API.
+#
+# Pod Security Admission is set to "restricted" because this workload handles
+# patient data; the manifests below are written to satisfy that profile
+# (non-root, read-only root FS, dropped capabilities, seccomp RuntimeDefault).
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: carecare
+  labels:
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/warn: restricted
+---
+# Default-deny egress/ingress; explicit allows are added per service.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: carecare
+spec:
+  podSelector: {}
+  policyTypes: [Ingress, Egress]
+---
+# The API may talk to Postgres, Redis, and DNS only.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-egress
+  namespace: carecare
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: api
+  policyTypes: [Egress]
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: postgres
+      ports:
+        - port: 5432
+          protocol: TCP
+    - to:
+        - podSelector:
+            matchLabels:
+              app.kubernetes.io/name: redis
+      ports:
+        - port: 6379
+          protocol: TCP
+    - ports:
+        - port: 53
+          protocol: UDP

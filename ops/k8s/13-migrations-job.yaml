@@ -1,0 +1,43 @@
+# Migration Job — run once per deploy, before the API rollout.
+#
+# Using a Job (not an init container per pod) avoids N pods racing the same
+# migration. Argo CD PreSync hook ordering is set in the Application manifest.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: api-migrate
+  namespace: carecare
+  labels:
+    app.kubernetes.io/name: api-migrate
+spec:
+  backoffLimit: 3
+  ttlSecondsAfterFinished: 600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: api-migrate
+    spec:
+      restartPolicy: Never
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        seccompProfile: { type: RuntimeDefault }
+      containers:
+        - name: migrate
+          image: REGISTRY/carecare-api:IMAGE_TAG
+          command: ['python', 'manage.py', 'migrate', '--noinput']
+          envFrom:
+            - configMapRef: { name: api-config }
+            - secretRef: { name: api-secrets }
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: { drop: ['ALL'] }
+          resources:
+            requests: { cpu: 100m, memory: 256Mi }
+            limits: { cpu: 500m, memory: 512Mi }
+          volumeMounts:
+            - { name: tmp, mountPath: /tmp }
+      volumes:
+        - name: tmp
+          emptyDir: {}

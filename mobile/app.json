@@ -1,0 +1,36 @@
+{
+  "expo": {
+    "name": "Cara Care",
+    "slug": "carecare-mobile",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "scheme": "carecare",
+    "userInterfaceStyle": "automatic",
+    "newArchEnabled": false,
+    "splash": {
+      "backgroundColor": "#0E7C7B",
+      "resizeMode": "contain"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.carecare.demo",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Unlock Cara Care to protect your health data."
+      }
+    },
+    "android": {
+      "package": "com.carecare.demo",
+      "adaptiveIcon": {
+        "backgroundColor": "#0E7C7B"
+      }
+    },
+    "web": {
+      "bundler": "metro"
+    },
+    "extra": {
+      "apiBaseUrl": "http://localhost:8000"
+    },
+    "plugins": ["expo-secure-store"]
+  }
+}

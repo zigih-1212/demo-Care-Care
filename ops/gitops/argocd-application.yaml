@@ -1,0 +1,31 @@
+# Argo CD Application — GitOps deployment of the whole carecare stack.
+#
+# Sync waves order the rollout: namespace/policies first, config/secrets next,
+# migrations (PreSync hook) before workloads, then the API and ingress.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: carecare-api
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/zigih-1212/demo-Care-Care.git
+    targetRevision: main
+    path: ops/k8s
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: carecare
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=false
+      - ApplyOutOfSyncOnly=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

@@ -1,0 +1,15 @@
+# ConfigMap for non-secret API configuration.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: api-config
+  namespace: carecare
+data:
+  DJANGO_SETTINGS_MODULE: carecare.settings.prod
+  DJANGO_DEBUG: 'false'
+  DJANGO_ALLOWED_HOSTS: 'api.carecare.example.com,api'
+  CORS_ALLOWED_ORIGINS: 'https://app.carecare.example.com'
+  SYMPTOM_MAX_BACKDATE_DAYS: '7'
+  # OpenTelemetry / Sentry endpoints are injected per environment.
+  OTEL_SERVICE_NAME: carecare-api
+  SENTRY_ENVIRONMENT: production
