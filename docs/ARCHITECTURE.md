@@ -1,7 +1,7 @@
 # Architecture
 
 > Status of claims in this document: the **backend behaviour** is VERIFIED by
-> the test suite (51 tests). The **infrastructure topology** is a design
+> the test suite (54 tests). The **infrastructure topology** is a design
 > artifact — manifests are syntactically real but were not applied (no
 > Docker/K8s in the development environment). See `../TRUST.md`.
 

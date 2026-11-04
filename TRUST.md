@@ -18,12 +18,14 @@ Redis/kubectl/terraform installed**. This constraint shapes the status below.
 | Django system check passes | `python manage.py check` | `System check identified no issues (0 silenced)` |
 | Production deploy check passes | `manage.py check --deploy --settings=carecare.settings.prod` | `System check identified no issues (0 silenced)` |
 | Migrations apply | `python manage.py migrate` on test settings | all `0001_initial` applied OK |
-| Full test suite passes | `.venv/Scripts/python -m pytest -q` | **51 passed** |
-| Lint / format / types | `ruff check .` · `ruff format --check .` · `mypy carecare apps common` | all clean (`60 source files`) |
+| Full test suite passes | `.venv/Scripts/python -m pytest -q` | **54 passed** |
+| Lint / format / types | `ruff check .` · `ruff format --check .` · `mypy carecare apps common` | all clean (`64 source files`) |
 | Tests cover RBAC/privacy | `tests/test_authorization.py` (19 tests) | cross-patient access denied, revoked relationship denied (read+analytics+write+enroll), audit written |
 | Tests cover auth lifecycle | `tests/test_auth.py` (13 tests) | login/refresh/logout/blacklist/change-password |
 | Tests cover validation | `tests/test_tracking.py` (7 tests) | backdating window, severity bounds, trend aggregation |
+| Tests cover audit service | `tests/test_audit_service.py` (3 tests) | failed audit write returns None and does not poison the caller transaction |
 | Integration surface | `tests/test_integration.py` (5 tests) | health, request-id, error envelope, OpenAPI schema |
+| End-to-end write path (demo) | live `runserver` + demo seed, POST then GET | POST `/symptoms/` → 201, then summary/trend → 200 (see defect log) |
 
 **Caveat:** tests run against **SQLite in-memory** by default. `settings/test.py`
 supports `TEST_USE_POSTGRES=1`, and CI runs against **real Postgres 16 + Redis 7**
@@ -41,7 +43,7 @@ Static analysis and unit tests ran against a **real installed dependency tree**
 | `tsc --noEmit` passes | **VERIFIED** | `npx tsc --noEmit` → exit 0, empty output |
 | Jest unit tests pass | **VERIFIED** | `npx jest --ci` → 2 suites / 4 tests passed, exit 0 |
 | ESLint clean | **VERIFIED** | `npx eslint .` → exit 0 (after fixing 2 real `no-unused-vars` defects in `src/hooks/queries.ts`) |
-| App renders in a device/browser | **UNVERIFIED** | no emulator/simulator or browser run performed |
+| App renders in a device/browser | **PARTIALLY VERIFIED** | web export loaded in a real browser (Chromium) via the in-app browser: login screen + all 5 tabs render real seeded data with zero console errors; no native emulator/simulator run and **no screenshots** (no visible desktop window) |
 | JWT refresh is single-flight | VERIFIED (by code review) | `refreshInFlight` guard in `src/api/client.ts` |
 | Tokens stored in keystore | VERIFIED (by code review) | `expo-secure-store` in `src/auth/tokenStorage.ts` |
 
@@ -106,6 +108,16 @@ environment. They are inspectable artifacts, not executed proof.
   a BFF); this is stated in the file's header comment. Unit tests do not catch it
   because `jest.setup.ts` mocks `expo-secure-store` and never exercises the real
   web module — the defect was only visible in a real browser run.
+- **Audit write could poison the request transaction (High).** `record()` is
+  documented to *never* break the clinical workflow, so it catches a failed
+  `AuditLog.objects.create`. But with `ATOMIC_REQUESTS=True` that caught
+  exception still marked the **outer** transaction as broken: the request that
+  was being audited then died with a 500 (`can't execute queries until the end
+  of the atomic block`). A real `database is locked` during the end-to-end demo
+  surfaced it (SQLite, but the same happens with a Postgres serialization
+  failure or a dropped connection). Fixed by wrapping the write in its own
+  `transaction.atomic()` savepoint in `apps/audit/services.py`; three
+  regression tests added in `tests/test_audit_service.py`, suite grew 51 → 54.
 
 ## How to convert UNVERIFIED → VERIFIED
 

@@ -17,7 +17,7 @@ This repository demonstrates each layer with real code, not slideware:
 
 | Layer | What's here | Evidence |
 | --- | --- | --- |
-| Backend | Django 5 + DRF, JWT auth, RBAC, audit log, async tasks | 51 passing tests |
+| Backend | Django 5 + DRF, JWT auth, RBAC, audit log, async tasks | 54 passing tests |
 | Frontend | React Native (Expo) + TypeScript, secure token storage | unit tests, typecheck |
 | Data | PostgreSQL, indexed queries, SQL-side aggregation | migrations, models |
 | Security | object-level authz, throttling, sealed secrets, audit trail | dedicated authz test suite |
@@ -82,7 +82,7 @@ uv pip install -e ".[dev]"
 .venv/bin/python -m pytest -q            # macOS/Linux
 ```
 
-Expected (verified on this project): `51 passed`.
+Expected (verified on this project): `54 passed`.
 
 To run against real Postgres (used in CI):
 

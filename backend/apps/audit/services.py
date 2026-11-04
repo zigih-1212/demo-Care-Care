@@ -11,6 +11,8 @@ import logging
 import uuid
 from typing import Any
 
+from django.db import transaction
+
 from .models import AuditLog
 
 logger = logging.getLogger(__name__)
@@ -32,6 +34,11 @@ def record(
     take down the clinical workflow. In production this would additionally push
     to a durable sink (e.g. append-only object storage) so a database hiccup
     cannot lose the trail - see docs/COMPLIANCE.md.
+
+    The write runs in its own savepoint. This matters under ``ATOMIC_REQUESTS``:
+    without it, a failed INSERT would mark the outer transaction as broken and
+    the *whole* request would fail with a 500 - the opposite of "auditing never
+    breaks the workflow". The savepoint confines the damage to this one row.
     """
     try:
         if actor is None and request is not None:
@@ -40,18 +47,19 @@ def record(
 
         ctx = getattr(request, "audit_context", {}) if request is not None else {}
 
-        return AuditLog.objects.create(
-            actor=actor,
-            actor_email=getattr(actor, "email", "") or "",
-            action=action,
-            resource_type=resource_type,
-            resource_id=str(resource_id) if resource_id is not None else "",
-            patient=patient,
-            ip_address=ctx.get("ip"),
-            user_agent=ctx.get("user_agent", ""),
-            request_id=ctx.get("request_id") or "",
-            metadata=metadata or {},
-        )
+        with transaction.atomic():
+            return AuditLog.objects.create(
+                actor=actor,
+                actor_email=getattr(actor, "email", "") or "",
+                action=action,
+                resource_type=resource_type,
+                resource_id=str(resource_id) if resource_id is not None else "",
+                patient=patient,
+                ip_address=ctx.get("ip"),
+                user_agent=ctx.get("user_agent", ""),
+                request_id=ctx.get("request_id") or "",
+                metadata=metadata or {},
+            )
     except Exception:  # noqa: BLE001 - auditing must never break the request
         logger.exception(
             "Failed to write audit entry action=%s resource=%s:%s",
