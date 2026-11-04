@@ -36,6 +36,9 @@ npm-debug.log*
 .DS_Store
 Thumbs.db
 
+# Cloudflare / Wrangler local cache
+.wrangler/
+
 # Terraform
 .terraform/
 *.tfstate

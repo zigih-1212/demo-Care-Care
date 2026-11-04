@@ -7,9 +7,14 @@ therapy programs; clinicians access only the patients under their care.
 Built as a portfolio piece for a **Full-Stack Engineer** role focused on
 **Django + PostgreSQL**, **React Native**, and **cloud-native operation**.
 
+**Live demo:** https://carecare-demo.pages.dev
+
 ---
 
 ## Try it without installing anything
+
+**Live demo: https://carecare-demo.pages.dev** — open it in any browser, no
+install and no backend required.
 
 The frontend ships as a **runnable web app** (React Native Web) with a built-in
 demo data layer, so it works from a browser with no backend:

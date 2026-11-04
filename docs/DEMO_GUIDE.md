@@ -6,8 +6,9 @@ anything or read code to try it.
 
 ## 1. Open the app in your browser
 
-Open the hosted link (Cloudflare Pages). That is the whole product — the frontend
-runs with a built-in demo dataset, so there is no backend to wait for.
+Open the hosted link: **https://carecare-demo.pages.dev** (Cloudflare Pages).
+That is the whole product — the frontend runs with a built-in demo dataset, so
+there is no backend to wait for.
 
 On the login screen you will see **“Try it as…”** with three one-tap buttons.
 Pick a role:
