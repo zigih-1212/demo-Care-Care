@@ -79,8 +79,8 @@ environment. They are inspectable artifacts, not executed proof.
 - ❌ No independent third-party review was performed. A **self-review of the
   authorization core** was carried out and it did uncover and fix a real defect
   (below). Backend quality gates (`ruff`/`mypy`/`pytest`/`check --deploy`) were
-  run directly and are VERIFIED; an independent human/agent review is still
-  recommended before relying on this code.
+  run directly and are VERIFIED; an independent review is still recommended
+  before relying on this code.
 
 ## Defects found by review (and fixed)
 

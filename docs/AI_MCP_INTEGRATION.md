@@ -2,9 +2,9 @@
 
 This project treats AI coding agents as a **tool with a written policy**, the same
 way it treats any other dependency that can touch sensitive data. In a regulated
-health product the risk is concrete: an agent (or an MCP server wired into it) can
+health product the risk is concrete: an AI tool (or an MCP server wired into it) can
 leak patient data, exfiltrate secrets, or silently introduce defects. This document
-defines the rules the project follows and the guardrails that back them.
+defines the guardrails the project applies.
 
 The role lists *"connect AI tooling via MCP, keeping patient data out of unapproved
 tools"* as a first-class responsibility — this is the policy that implements it.
@@ -17,7 +17,7 @@ tools"* as a first-class responsibility — this is the policy that implements i
 | Secrets never enter prompts | `.env` is excluded by an environment guard; only variable *names* appear in docs |
 | Every AI-suggested change is human-reviewed | Changes go through PR + CI (lint, types, tests) before merge |
 | Reproducibility | Agents run against the same `pyproject.toml`/`package.json` as humans |
-| The agent's output is untrusted by default | The test suite is the arbiter — see the defect log in `TRUST.md` |
+| AI-suggested output is untrusted by default | The test suite is the arbiter — see the defect log in `TRUST.md` |
 
 ## 2. What an approved MCP toolchain looks like here
 
