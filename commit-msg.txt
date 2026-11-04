@@ -1,0 +1,19 @@
+Web: fix app hanging on splash in the browser; add static hosting config
+
+Root cause: expo-secure-store has no web implementation, so AuthContext's
+bootstrap (tokenStorage.load -> SecureStore.getItemAsync) threw on web and the
+app never left the "Loading your data..." state. Found and confirmed in a real
+browser run (TypeError: getValueWithKeyAsync is not a function), not by unit
+tests -- jest.setup.ts mocks expo-secure-store, which hid it.
+
+Fix: platform-split storage in src/auth/tokenStorage.ts. Native keeps
+expo-secure-store; web falls back to localStorage (documented as acceptable for
+a browser demo, not the production answer: httpOnly cookies / BFF).
+
+Also:
+- package.json: add build:web script (expo export --platform web)
+- vercel.json, netlify.toml, mobile/public/_redirects: SPA hosting configs
+- docs: remove authoring/internal-process wording; refresh 48 -> 51 tests
+
+Verified: mobile tsc/eslint/jest exit 0; web export produced a new bundle that
+renders the Sign in screen with no console errors.

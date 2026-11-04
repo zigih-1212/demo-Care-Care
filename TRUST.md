@@ -6,7 +6,7 @@ working unless it is marked VERIFIED here with an actual command.
 
 Legend: **VERIFIED** · **PARTIALLY VERIFIED** · **UNVERIFIED** · **NOT IMPLEMENTED**
 
-Authoring environment: Windows, Python 3.12.7, Node 24, **no Docker/Postgres/
+Development environment: Windows, Python 3.12.7, Node 24, **no Docker/Postgres/
 Redis/kubectl/terraform installed**. This constraint shapes the status below.
 
 ---
@@ -73,13 +73,11 @@ environment. They are inspectable artifacts, not executed proof.
   not a repository.
 - ❌ No mobile screenshot/visual verification (static checks + unit tests are
   VERIFIED; rendering on a real screen was not observed).
-- ❌ No independent subagent review (security-reviewer / code-reviewer) was
-  performed: the agent tooling hit its daily quota in the authoring
-  environment. A **self-review of the authorization core** was performed
-  instead and did uncover and fix a real defect (below). Backend quality gates
-  (ruff/mypy/pytest/check --deploy) were run directly and are VERIFIED; an
-  independent human/agent review is still recommended before relying on this
-  code.
+- ❌ No independent third-party review was performed. A **self-review of the
+  authorization core** was carried out and it did uncover and fix a real defect
+  (below). Backend quality gates (`ruff`/`mypy`/`pytest`/`check --deploy`) were
+  run directly and are VERIFIED; an independent human/agent review is still
+  recommended before relying on this code.
 
 ## Defects found by review (and fixed)
 
@@ -97,6 +95,17 @@ environment. They are inspectable artifacts, not executed proof.
   serializer raised `ValidationError` (HTTP 400) when a clinician was not on the
   patient's care team; corrected to `PermissionDenied` (HTTP 403) so "denied" is
   not indistinguishable from "bad input".
+- **Web build hung on the splash screen (High, web target).** `expo-secure-store`
+  has no web implementation, so `tokenStorage.load()` threw
+  `getValueWithKeyAsync is not a function` in the browser and the auth bootstrap
+  never left the `loading` state. Found by actually loading the exported web
+  bundle in a browser (see the Mobile section). Fixed in
+  `src/auth/tokenStorage.ts` with a platform split: keystore on native,
+  `localStorage` on web. `localStorage` is acceptable for a demo session but is
+  **not** the production answer for web (there you would use httpOnly cookies or
+  a BFF); this is stated in the file's header comment. Unit tests do not catch it
+  because `jest.setup.ts` mocks `expo-secure-store` and never exercises the real
+  web module — the defect was only visible in a real browser run.
 
 ## How to convert UNVERIFIED → VERIFIED
 
