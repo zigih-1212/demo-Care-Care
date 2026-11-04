@@ -41,7 +41,10 @@ class IsCareTeamMember(BasePermission):
         if user.role == Role.ADMIN:
             return True
         if user.role == Role.DOCTOR:
-            return patient.care_team.filter(id=user.id).exists()
+            # Active relationship only: an ended CareRelationship is retained for
+            # audit but must not keep granting access. Delegating to the model
+            # keeps this single-sourced with the queryset-level scoping.
+            return patient.is_in_care_team(user)
         return patient.user_id == user.id
 
     def has_permission(self, request, view) -> bool:

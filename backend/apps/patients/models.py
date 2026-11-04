@@ -61,11 +61,17 @@ class Patient(models.Model):
         return f"Patient({self.id})"
 
     def is_in_care_team(self, user) -> bool:
+        """Whether ``user`` may currently act on this patient's data.
+
+        Only *active* relationships count: ``ended_at`` is kept for audit, so a
+        revoked clinician must NOT keep access. Filtering on ``care_team`` alone
+        would grant access forever, since ended rows are intentionally retained.
+        """
         if not (user and user.is_authenticated):
             return False
         if user.role == "admin":
             return True
-        return self.care_team.filter(id=user.id).exists()
+        return self.care_relationships.filter(clinician=user, ended_at__isnull=True).exists()
 
 
 class CareRelationship(models.Model):

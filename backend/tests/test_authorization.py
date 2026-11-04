@@ -87,6 +87,50 @@ class TestCareTeamAccess:
         resp = doctor_client.get(reverse("tracking:symptom-list"), {"patient": str(patient.id)})
         assert resp.status_code in (403, 404), "ended relationship must revoke access"
 
+    def test_revoked_relationship_blocks_analytics(self, doctor_client, patient, care_relationship):
+        """Regression: analytics go through ``is_in_care_team``, which must also
+        honour ``ended_at``. A revoked clinician must not read trends/summaries.
+        """
+        _entry(patient)
+        care_relationship.ended_at = timezone.now()
+        care_relationship.save(update_fields=["ended_at"])
+        resp = doctor_client.get(reverse("tracking:symptom-trend"), {"patient": str(patient.id)})
+        assert resp.status_code in (403, 404), "revoked clinician must not see analytics"
+
+    def test_revoked_relationship_blocks_write(self, doctor_client, patient, care_relationship):
+        """Regression: write paths (_resolve_patient) also use is_in_care_team.
+
+        A revoked clinician must not be able to create records attributed to the
+        patient even though the row-relationship still exists in the database.
+        """
+        care_relationship.ended_at = timezone.now()
+        care_relationship.save(update_fields=["ended_at"])
+        resp = doctor_client.post(
+            reverse("tracking:symptom-list"),
+            {
+                "patient": str(patient.id),
+                "symptom_type": "nausea",
+                "severity": 3,
+                "recorded_at": timezone.now().isoformat(),
+            },
+            format="json",
+        )
+        assert resp.status_code in (403, 404), "revoked clinician must not write patient data"
+
+    def test_revoked_relationship_blocks_enrollment(
+        self, doctor_client, patient, care_relationship
+    ):
+        """Regression: therapy serializer checks access via is_in_care_team."""
+        program = TherapyProgram.objects.create(slug="ibs-rev", title="IBS Rev", condition="IBS")
+        care_relationship.ended_at = timezone.now()
+        care_relationship.save(update_fields=["ended_at"])
+        resp = doctor_client.post(
+            reverse("therapy:enrollment-list"),
+            {"patient": str(patient.id), "program": str(program.id)},
+            format="json",
+        )
+        assert resp.status_code in (403, 404), "revoked clinician must not enroll a patient"
+
     def test_admin_can_read_any_patient(self, admin_client, other_patient):
         _entry(other_patient)
         resp = admin_client.get(

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from rest_framework import serializers
+from rest_framework.exceptions import PermissionDenied
 
 from apps.patients.models import Patient
 
@@ -78,6 +79,8 @@ def _resolve_patient(request) -> Patient | None:
             return None
         patient = Patient.objects.filter(id=patient_id).first()
         if patient and user.role == "doctor" and not patient.is_in_care_team(user):
-            raise serializers.ValidationError({"patient": "Not on this patient's care team."})
+            # Authorisation failure, not a malformed request: 403 keeps the client
+            # able to distinguish "you may not" from "your input is wrong".
+            raise PermissionDenied("Not on this patient's care team.")
         return patient
     return getattr(user, "patient_profile", None)
