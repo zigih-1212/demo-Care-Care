@@ -41,3 +41,5 @@ Thumbs.db
 *.tfstate
 *.tfstate.*
 crash.log
+commit-msg.txt 
+*.log
